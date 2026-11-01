@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101322">
+  <title>課堂抽籤機</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101322;
+      --panel: #191e32;
+      --panel-light: #202741;
+      --text: #f5f6ff;
+      --muted: #aab1cc;
+      --accent: #9a83ff;
+      --accent-strong: #7457f5;
+      --teal: #69e2d0;
+      --danger: #ff8291;
+      --border: rgba(215, 220, 255, .13);
+      font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 50% -15%, rgba(116, 87, 245, .22), transparent 48%),
+        var(--bg);
+    }
+
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+
+    .page {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    .brand-icon {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid rgba(154, 131, 255, .45);
+      border-radius: 14px;
+      color: #d3c9ff;
+      background: rgba(154, 131, 255, .13);
+      font-size: 1.35rem;
+    }
+
+    .top-note { color: var(--muted); font-size: .9rem; }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      line-height: 1.12;
+      letter-spacing: .02em;
+    }
+
+    .subtitle {
+      margin: 12px 0 28px;
+      color: var(--muted);
+      font-size: clamp(1rem, 2vw, 1.15rem);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: clamp(20px, 3vw, 30px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(28, 33, 54, .97), rgba(22, 27, 45, .97));
+      box-shadow: 0 18px 55px rgba(0, 0, 0, .2);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 0 0 20px;
+      font-size: 1.35rem;
+    }
+
+    .step {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      flex: 0 0 32px;
+      place-items: center;
+      border-radius: 10px;
+      color: #ded8ff;
+      background: rgba(154, 131, 255, .18);
+      font-size: .95rem;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 5px;
+      margin-bottom: 22px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      background: #111526;
+    }
+
+    .mode-button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 11px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-weight: 750;
+    }
+
+    .mode-button[aria-pressed="true"] {
+      color: white;
+      background: var(--accent-strong);
+      box-shadow: 0 5px 16px rgba(116, 87, 245, .3);
+    }
+
+    .mode-content[hidden] { display: none; }
+    .field-label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .range-fields {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .range-dash {
+      padding-bottom: 14px;
+      color: var(--muted);
+      font-size: 1.2rem;
+    }
+
+    input[type="number"], input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid rgba(215, 220, 255, .19);
+      border-radius: 12px;
+      outline: none;
+      color: var(--text);
+      background: #111526;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    input[type="number"], input[type="text"] {
+      min-height: 50px;
+      padding: 10px 14px;
+      font-size: 1.05rem;
+    }
+
+    textarea {
+      min-height: 150px;
+      padding: 13px 15px;
+      resize: vertical;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(154, 131, 255, .18);
+    }
+
+    .helper {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.55;
+    }
+
+    .setting-block { margin-top: 23px; }
+
+    .draw-count-row {
+      display: grid;
+      grid-template-columns: 1fr 130px;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .draw-count-row .field-label { margin: 0; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 22px;
+      padding: 15px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .025);
+      cursor: pointer;
+    }
+
+    .toggle-copy strong { display: block; font-size: 1rem; }
+    .toggle-copy small { display: block; margin-top: 4px; color: var(--muted); }
+
+    .toggle {
+      position: relative;
+      width: 52px;
+      height: 30px;
+      flex: 0 0 52px;
+    }
+
+    .toggle input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 999px;
+      background: #353a4d;
+      transition: background .2s;
+    }
+
+    .toggle-track::after {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: white;
+      content: "";
+      transition: transform .2s;
+    }
+
+    .toggle input:checked + .toggle-track { background: var(--accent-strong); }
+    .toggle input:checked + .toggle-track::after { transform: translateX(22px); }
+    .toggle input:focus-visible + .toggle-track { outline: 3px solid #c5b8ff; outline-offset: 3px; }
+
+    .remaining {
+      margin: 13px 0 0;
+      color: var(--teal);
+      font-size: .98rem;
+      font-weight: 700;
+    }
+
+    .draw-button {
+      display: flex;
+      width: 100%;
+      min-height: 68px;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+      border: 0;
+      border-radius: 16px;
+      color: white;
+      background: linear-gradient(105deg, #8065ff, #6547eb);
+      box-shadow: 0 10px 26px rgba(101, 71, 235, .25);
+      cursor: pointer;
+      font-size: 1.35rem;
+      font-weight: 850;
+      transition: transform .15s, filter .15s;
+    }
+
+    .draw-button:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); }
+    .draw-button:active:not(:disabled) { transform: translateY(0); }
+    .draw-button:disabled { opacity: .65; cursor: wait; }
+    .draw-icon { font-size: 1.5rem; }
+
+    .error-message {
+      min-height: 1.5em;
+      margin: 12px 0 0;
+      color: var(--danger);
+      font-size: .98rem;
+      font-weight: 650;
+      line-height: 1.5;
+    }
+
+    .result-panel { min-height: 412px; }
+    .result-stage {
+      display: flex;
+      min-height: 275px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 28px 18px;
+      border: 1px solid rgba(154, 131, 255, .18);
+      border-radius: 19px;
+      background:
+        radial-gradient(ellipse at center, rgba(116, 87, 245, .16), transparent 68%),
+        #14192b;
+      text-align: center;
+    }
+
+    .result-kicker {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: .98rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+    }
+
+    .rolling-value {
+      color: white;
+      font-size: clamp(3.2rem, 9vw, 6.2rem);
+      font-weight: 900;
+      line-height: 1.12;
+      overflow-wrap: anywhere;
+      text-shadow: 0 0 35px rgba(154, 131, 255, .35);
+    }
+
+    .rolling-value.is-spinning { animation: pulse .16s ease-in-out infinite alternate; }
+
+    @keyframes pulse {
+      from { transform: scale(.96); opacity: .72; }
+      to { transform: scale(1.04); opacity: 1; }
+    }
+
+    .result-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .result-chip {
+      padding: 10px 20px;
+      border: 1px solid rgba(105, 226, 208, .4);
+      border-radius: 13px;
+      color: #c9fff5;
+      background: rgba(105, 226, 208, .1);
+      font-size: clamp(1.2rem, 3vw, 1.65rem);
+      font-weight: 800;
+      animation: reveal .4s cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(12px) scale(.85); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .result-meta {
+      min-height: 1.5em;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 25px 0 12px;
+    }
+
+    .history-header h3 { margin: 0; font-size: 1.1rem; }
+
+    .reset-button {
+      min-height: 40px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 700;
+    }
+
+    .reset-button:hover:not(:disabled) { border-color: var(--danger); color: #ffc0c8; }
+    .reset-button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .history-list {
+      display: grid;
+      max-height: 250px;
+      gap: 8px;
+      overflow: auto;
+      padding: 2px 3px 2px 0;
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: 27px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 11px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .045);
+    }
+
+    .history-index { color: var(--accent); font-weight: 800; }
+    .history-names { overflow-wrap: anywhere; font-weight: 700; }
+    .history-time { padding-top: 2px; color: var(--muted); font-size: .8rem; }
+    .empty-history { margin: 0; padding: 17px 0; color: var(--muted); text-align: center; }
+
+    .confetti-layer {
+      position: fixed;
+      z-index: 5;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -20px;
+      width: 10px;
+      height: 16px;
+      border-radius: 2px;
+      animation: fall var(--duration) cubic-bezier(.16, .6, .35, 1) forwards;
+    }
+
+    @keyframes fall {
+      to { transform: translate3d(var(--drift), 110vh, 0) rotate(var(--spin)); opacity: .85; }
+    }
+
+    fieldset { min-width: 0; padding: 0; border: 0; }
+    fieldset:disabled { opacity: .72; }
+
+    @media (max-width: 780px) {
+      .page { width: min(620px, calc(100% - 28px)); padding-top: 18px; }
+      .layout { grid-template-columns: 1fr; }
+      .result-panel { min-height: 0; }
+      .top-note { display: none; }
+    }
+
+    @media (max-width: 420px) {
+      .page { width: calc(100% - 20px); }
+      .panel { padding: 19px 16px; border-radius: 19px; }
+      .range-fields { gap: 8px; }
+      .draw-count-row { grid-template-columns: 1fr 105px; }
+      .history-item { grid-template-columns: 24px 1fr; }
+      .history-time { grid-column: 2; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon" aria-hidden="true">✦</span> CLASSROOM TOOL</div>
+      <div class="top-note">一起來看看，今天輪到誰？</div>
+    </header>
+    <h1>課堂抽籤機</h1>
+    <p class="subtitle">公平抽選每一位同學，讓課堂互動更有趣。</p>
+
+    <div class="layout">
+      <section class="panel" aria-labelledby="settingsTitle">
+        <h2 class="section-heading" id="settingsTitle"><span class="step">1</span>設定抽籤內容</h2>
+        <fieldset id="settingsFieldset">
+          <div class="mode-switch" role="group" aria-label="抽籤模式">
+            <button type="button" class="mode-button" id="numberModeButton" aria-pressed="true">號碼模式</button>
+            <button type="button" class="mode-button" id="nameModeButton" aria-pressed="false">姓名模式</button>
+          </div>
+
+          <div class="mode-content" id="numberModeContent">
+            <label class="field-label" for="startNumber">抽選號碼範圍</label>
+            <div class="range-fields">
+              <input id="startNumber" type="number" step="1" value="1" aria-label="起始號碼">
+              <span class="range-dash" aria-hidden="true">～</span>
+              <input id="endNumber" type="number" step="1" value="30" aria-label="結束號碼">
+            </div>
+            <p class="helper">包含起始與結束號碼，例如 1～30。</p>
+          </div>
+
+          <div class="mode-content" id="nameModeContent" hidden>
+            <label class="field-label" for="nameList">班級名單</label>
+            <textarea id="nameList" placeholder="每行輸入一位同學&#10;例如：&#10;王小明&#10;陳怡君"></textarea>
+            <p class="helper">一行一個姓名；空白行會自動略過，名單會保存在這台裝置。</p>
+          </div>
+
+          <div class="setting-block">
+            <div class="draw-count-row">
+              <label class="field-label" for="drawCount">這次抽出幾位？</label>
+              <input id="drawCount" type="number" min="1" step="1" value="1" inputmode="numeric">
+            </div>
+          </div>
+
+          <div class="setting-block">
+            <label class="field-label" for="excludeInput">排除對象（選填）</label>
+            <input id="excludeInput" type="text" placeholder="例如：5, 12" autocomplete="off">
+            <p class="helper">可用逗號、頓號或換行分隔；姓名模式請輸入完整姓名。</p>
+          </div>
+
+          <label class="toggle-row" for="noRepeat">
+            <span class="toggle-copy">
+              <strong>不重複抽籤</strong>
+              <small>抽過的對象不會再次入選</small>
+            </span>
+            <span class="toggle">
+              <input type="checkbox" id="noRepeat">
+              <span class="toggle-track" aria-hidden="true"></span>
+            </span>
+          </label>
+          <p class="remaining" id="remainingCount" aria-live="polite"></p>
+        </fieldset>
+
+        <button class="draw-button" type="button" id="drawButton">
+          <span class="draw-icon" aria-hidden="true">✦</span><span id="drawButtonText">開始抽籤</span>
+        </button>
+        <p class="error-message" id="errorMessage" role="alert" aria-live="assertive"></p>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="resultTitle">
+        <h2 class="section-heading" id="resultTitle"><span class="step">2</span>抽籤結果</h2>
+        <div class="result-stage" aria-live="polite" aria-atomic="true">
+          <p class="result-kicker" id="resultKicker">準備好了嗎？</p>
+          <div class="rolling-value" id="rollingValue">？</div>
+          <div class="result-list" id="resultList"></div>
+          <p class="result-meta" id="resultMeta">設定好名單後，按下「開始抽籤」</p>
+        </div>
+        <div class="history-header">
+          <h3>抽籤紀錄 <span id="historyCount">(0)</span></h3>
+          <button class="reset-button" type="button" id="resetButton">一鍵重置</button>
+        </div>
+        <div class="history-list" id="historyList" aria-label="抽籤紀錄"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "classroomLotteryState_v1";
+      const DEFAULT_STATE = {
+        mode: "number",
+        start: "1",
+        end: "30",
+        names: "",
+        count: "1",
+        exclusions: "",
+        noRepeat: false,
+        drawn: { number: [], name: [] },
+        history: []
+      };
+
+      const elements = {
+        numberModeButton: document.getElementById("numberModeButton"),
+        nameModeButton: document.getElementById("nameModeButton"),
+        numberModeContent: document.getElementById("numberModeContent"),
+        nameModeContent: document.getElementById("nameModeContent"),
+        start: document.getElementById("startNumber"),
+        end: document.getElementById("endNumber"),
+        names: document.getElementById("nameList"),
+        count: document.getElementById("drawCount"),
+        exclusions: document.getElementById("excludeInput"),
+        noRepeat: document.getElementById("noRepeat"),
+        remaining: document.getElementById("remainingCount"),
+        settings: document.getElementById("settingsFieldset"),
+        drawButton: document.getElementById("drawButton"),
+        drawButtonText: document.getElementById("drawButtonText"),
+        error: document.getElementById("errorMessage"),
+        kicker: document.getElementById("resultKicker"),
+        rolling: document.getElementById("rollingValue"),
+        resultList: document.getElementById("resultList"),
+        resultMeta: document.getElementById("resultMeta"),
+        resetButton: document.getElementById("resetButton"),
+        historyList: document.getElementById("historyList"),
+        historyCount: document.getElementById("historyCount"),
+        confetti: document.getElementById("confettiLayer")
+      };
+
+      function readSavedState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return { ...DEFAULT_STATE, drawn: { number: [], name: [] }, history: [] };
+          const saved = JSON.parse(raw);
+          if (!saved || typeof saved !== "object") throw new Error("格式錯誤");
+          return {
+            ...DEFAULT_STATE,
+            ...saved,
+            mode: saved.mode === "name" ? "name" : "number",
+            drawn: {
+              number: Array.isArray(saved.drawn && saved.drawn.number) ? saved.drawn.number : [],
+              name: Array.isArray(saved.drawn && saved.drawn.name) ? saved.drawn.name : []
+            },
+            history: Array.isArray(saved.history) ? saved.history.filter(item =>
+              item && Array.isArray(item.results) && typeof item.time === "string"
+            ) : []
+          };
+        } catch (error) {
+          return { ...DEFAULT_STATE, drawn: { number: [], name: [] }, history: [], storageError: "讀取本機保存資料失敗，已使用預設設定。" };
+        }
+      }
+
+      let state = readSavedState();
+      let isDrawing = false;
+
+      function saveState() {
+        try {
+          const toSave = { ...state };
+          delete toSave.storageError;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+        } catch (error) {
+          elements.error.textContent = "無法保存資料，請確認瀏覽器允許此頁面使用本機儲存空間。";
+        }
+      }
+
+      function setMode(mode) {
+        state.mode = mode;
+        const isNumber = mode === "number";
+        elements.numberModeButton.setAttribute("aria-pressed", String(isNumber));
+        elements.nameModeButton.setAttribute("aria-pressed", String(!isNumber));
+        elements.numberModeContent.hidden = !isNumber;
+        elements.nameModeContent.hidden = isNumber;
+        updateRemaining();
+        saveState();
+      }
+
+      function syncInputsFromState() {
+        elements.start.value = state.start;
+        elements.end.value = state.end;
+        elements.names.value = state.names;
+        elements.count.value = state.count;
+        elements.exclusions.value = state.exclusions;
+        elements.noRepeat.checked = Boolean(state.noRepeat);
+        setMode(state.mode);
+      }
+
+      function getParticipants() {
+        if (state.mode === "name") {
+          const names = state.names.split(/\r?\n/).map(name => name.trim()).filter(Boolean);
+          return [...new Set(names)].map(name => ({ label: name, key: name }));
+        }
+
+        const start = Number(state.start);
+        const end = Number(state.end);
+        if (state.start.trim() === "" || state.end.trim() === "" ||
+            !Number.isSafeInteger(start) || !Number.isSafeInteger(end)) {
+          return { error: "請輸入有效的整數起訖號碼。" };
+        }
+        if (end < start) return { error: "結束號碼必須大於或等於起始號碼。" };
+        const size = end - start + 1;
+        if (!Number.isSafeInteger(size) || size > 1000000) {
+          return { error: "號碼範圍最多支援 1,000,000 個號碼，請縮小範圍。" };
+        }
+        return Array.from({ length: size }, (_, index) => {
+          const number = start + index;
+          return { label: String(number), key: String(number) };
+        });
+      }
+
+      function getExcludedKeys() {
+        return new Set(state.exclusions.split(/[,\uFF0C\u3001;\uFF1B\r\n]+/).map(value => value.trim()).filter(Boolean));
+      }
+
+      function getEligibleParticipants() {
+        const participants = getParticipants();
+        if (!Array.isArray(participants)) return participants;
+        const excluded = getExcludedKeys();
+        const alreadyDrawn = new Set(state.drawn[state.mode]);
+        return participants.filter(person =>
+          !excluded.has(person.key) && (!state.noRepeat || !alreadyDrawn.has(person.key))
+        );
+      }
+
+      function updateRemaining() {
+        const available = getEligibleParticipants();
+        if (!Array.isArray(available)) {
+          elements.remaining.textContent = available.error;
+          return;
+        }
+        const label = state.noRepeat ? "剩餘可抽" : "目前可抽";
+        elements.remaining.textContent = `${label} ${available.length} 位`;
+      }
+
+      function renderHistory() {
+        elements.historyList.replaceChildren();
+        elements.historyCount.textContent = `(${state.history.length})`;
+        elements.resetButton.disabled = isDrawing;
+        if (state.history.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "empty-history";
+          empty.textContent = "還沒有抽籤紀錄";
+          elements.historyList.append(empty);
+          return;
+        }
+        state.history.forEach((entry, index) => {
+          const row = document.createElement("div");
+          row.className = "history-item";
+          const number = document.createElement("span");
+          number.className = "history-index";
+          number.textContent = `${state.history.length - index}.`;
+          const names = document.createElement("span");
+          names.className = "history-names";
+          names.textContent = entry.results.join("、");
+          const time = document.createElement("time");
+          time.className = "history-time";
+          time.textContent = entry.time;
+          row.append(number, names, time);
+          elements.historyList.append(row);
+        });
+      }
+
+      function setDrawing(value) {
+        isDrawing = value;
+        elements.settings.disabled = value;
+        elements.drawButton.disabled = value;
+        elements.drawButtonText.textContent = value ? "抽籤中…" : "開始抽籤";
+        renderHistory();
+      }
+
+      function showError(message) {
+        elements.error.textContent = message;
+      }
+
+      function randomIndex(max) {
+        return Math.floor(Math.random() * max);
+      }
+
+      function prepareAudio() {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return { context: null, ready: Promise.resolve(false) };
+        try {
+          const context = new AudioContextClass();
+          const ready = context.resume().then(() => true).catch(() => false);
+          return { context, ready };
+        } catch (error) {
+          return { context: null, ready: Promise.resolve(false) };
+        }
+      }
+
+      function playCelebrationSound(audio) {
+        audio.ready.then(ready => {
+          if (!ready || !audio.context) {
+            showError("結果已抽出，但瀏覽器無法播放音效。");
+            if (audio.context) audio.context.close();
+            return;
+          }
+          const context = audio.context;
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((frequency, index) => {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            const startAt = context.currentTime + index * 0.105;
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(frequency, startAt);
+            gain.gain.setValueAtTime(0.0001, startAt);
+            gain.gain.exponentialRampToValueAtTime(0.12, startAt + 0.025);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.32);
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.start(startAt);
+            oscillator.stop(startAt + 0.34);
+          });
+          window.setTimeout(() => context.close(), 900);
+        });
+      }
+
+      function launchConfetti() {
+        elements.confetti.replaceChildren();
+        const colors = ["#9a83ff", "#69e2d0", "#ffce70", "#ff8291", "#83b8ff", "#f5f6ff"];
+        for (let index = 0; index < 85; index += 1) {
+          const piece = document.createElement("span");
+          piece.className = "confetti";
+          piece.style.left = `${Math.random() * 100}%`;
+          piece.style.backgroundColor = colors[randomIndex(colors.length)];
+          piece.style.setProperty("--duration", `${2 + Math.random() * 1.5}s`);
+          piece.style.setProperty("--drift", `${Math.round((Math.random() - .5) * 260)}px`);
+          piece.style.setProperty("--spin", `${Math.round(Math.random() * 1200 - 600)}deg`);
+          piece.style.animationDelay = `${Math.random() * .35}s`;
+          elements.confetti.append(piece);
+        }
+        window.setTimeout(() => elements.confetti.replaceChildren(), 4200);
+      }
+
+      function showResults(results, time) {
+        elements.rolling.classList.remove("is-spinning");
+        elements.rolling.textContent = results.length === 1 ? results[0] : "抽中了！";
+        elements.kicker.textContent = "恭喜中選";
+        elements.resultList.replaceChildren();
+        if (results.length > 1) {
+          results.forEach((result, index) => {
+            const chip = document.createElement("span");
+            chip.className = "result-chip";
+            chip.style.animationDelay = `${index * 70}ms`;
+            chip.textContent = result;
+            elements.resultList.append(chip);
+          });
+        }
+        elements.resultMeta.textContent = `本次抽出 ${results.length} 位・${time}`;
+        launchConfetti();
+      }
+
+      function draw() {
+        if (isDrawing) return;
+        showError("");
+        const participants = getParticipants();
+        if (!Array.isArray(participants)) {
+          showError(participants.error);
+          updateRemaining();
+          return;
+        }
+        if (participants.length === 0) {
+          showError(state.mode === "name" ? "名單目前是空的，請先貼上姓名（一行一位）。" : "請設定有效的號碼範圍。");
+          return;
+        }
+        const available = getEligibleParticipants();
+        if (!Array.isArray(available)) {
+          showError(available.error);
+          return;
+        }
+        const requested = Number(state.count);
+        if (state.count.trim() === "" || !Number.isSafeInteger(requested) || requested < 1) {
+          showError("抽出人數請輸入 1 或以上的整數。");
+          return;
+        }
+        if (requested > available.length) {
+          showError(`可抽人數不足：這次需要 ${requested} 位，目前只有 ${available.length} 位可抽。請減少人數或調整排除設定。`);
+          return;
+        }
+
+        const selectionPool = [...available];
+        const selected = [];
+        for (let index = 0; index < requested; index += 1) {
+          const chosenIndex = randomIndex(selectionPool.length);
+          selected.push(selectionPool.splice(chosenIndex, 1)[0]);
+        }
+        const results = selected.map(person => person.label);
+        const audio = prepareAudio();
+        setDrawing(true);
+        elements.resultList.replaceChildren();
+        elements.resultMeta.textContent = "幸運同學即將揭曉…";
+        elements.kicker.textContent = "正在抽選";
+        elements.rolling.classList.add("is-spinning");
+
+        const startedAt = Date.now();
+        const duration = 2000;
+        const timer = window.setInterval(() => {
+          const elapsed = Date.now() - startedAt;
+          const flash = selectionPool.length ? selectionPool : available;
+          elements.rolling.textContent = flash[randomIndex(flash.length)].label;
+          if (elapsed < duration) return;
+          window.clearInterval(timer);
+          const date = new Date();
+          const time = date.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+          if (state.noRepeat) {
+            const drawn = new Set(state.drawn[state.mode]);
+            selected.forEach(person => drawn.add(person.key));
+            state.drawn[state.mode] = [...drawn];
+          }
+          state.history.unshift({ results, time, mode: state.mode });
+          saveState();
+          showResults(results, time);
+          playCelebrationSound(audio);
+          updateRemaining();
+          renderHistory();
+          setDrawing(false);
+        }, 65);
+      }
+
+      function reset() {
+        if (isDrawing) return;
+        state.drawn = { number: [], name: [] };
+        state.history = [];
+        elements.resultList.replaceChildren();
+        elements.rolling.textContent = "？";
+        elements.kicker.textContent = "準備好了嗎？";
+        elements.resultMeta.textContent = "設定好名單後，按下「開始抽籤」";
+        elements.confetti.replaceChildren();
+        showError("");
+        saveState();
+        updateRemaining();
+        renderHistory();
+      }
+
+      elements.numberModeButton.addEventListener("click", () => setMode("number"));
+      elements.nameModeButton.addEventListener("click", () => setMode("name"));
+      elements.start.addEventListener("input", () => { state.start = elements.start.value; saveState(); updateRemaining(); });
+      elements.end.addEventListener("input", () => { state.end = elements.end.value; saveState(); updateRemaining(); });
+      elements.names.addEventListener("input", () => { state.names = elements.names.value; saveState(); updateRemaining(); });
+      elements.count.addEventListener("input", () => { state.count = elements.count.value; saveState(); });
+      elements.exclusions.addEventListener("input", () => { state.exclusions = elements.exclusions.value; saveState(); updateRemaining(); });
+      elements.noRepeat.addEventListener("change", () => { state.noRepeat = elements.noRepeat.checked; saveState(); updateRemaining(); });
+      elements.drawButton.addEventListener("click", draw);
+      elements.resetButton.addEventListener("click", reset);
+
+      syncInputsFromState();
+      if (state.storageError) showError(state.storageError);
+      updateRemaining();
+      renderHistory();
+    })();
+  </script>
+</body>
+</html>
